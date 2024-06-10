@@ -27,7 +27,6 @@ client
 
 app.use(express.json());
 
-
 app.get('/', (req, res) => {
     res.send("Hello, world!");
 });
@@ -37,17 +36,20 @@ const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        pass: process.env.EMAIL_PASS,
     }
 });
 
 const sendSalesEmail = async (salesData) => {
     const mailOptions = {
-        from: process.env.EMAIL_USER, // Add a "from" address
+        from: process.env.EMAIL_USER,
         to: process.env.EMAIL_USER,
         subject: 'Hourly Sales Data',
         text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
+
     };
+console.log(process.env.EMAIL_USER );
+
 
     try {
         await transporter.sendMail(mailOptions);
