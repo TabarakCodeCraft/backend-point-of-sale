@@ -32,50 +32,50 @@ app.get('/', (req, res) => {
 });
 
 
-const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    }
-});
+// const transporter = nodemailer.createTransport({
+//     service: 'Gmail',
+//     auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS,
+//     }
+// });
 
-const sendSalesEmail = async (salesData) => {
-    const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: process.env.EMAIL_USER,
-        subject: 'Hourly Sales Data',
-        text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
+// const sendSalesEmail = async (salesData) => {
+//     const mailOptions = {
+//         from: process.env.EMAIL_USER,
+//         to: process.env.EMAIL_USER,
+//         subject: 'Hourly Sales Data',
+//         text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
 
-    };
-console.log(process.env.EMAIL_USER );
-
-
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log('Sales data email sent successfully');
-    } catch (error) {
-        console.error('Error sending sales data email:', error);
-    }
-};
+//     };
+// console.log(process.env.EMAIL_USER );
 
 
-const cornJob = new CronJob(
-    '* * * * * *', // cronTime
-    async function () {
-        try {
-            const result = await client.query('SELECT * FROM Sales');
-            console.log('Sales data:', result.rows);
+//     try {
+//         await transporter.sendMail(mailOptions);
+//         console.log('Sales data email sent successfully');
+//     } catch (error) {
+//         console.error('Error sending sales data email:', error);
+//     }
+// };
 
-            await sendSalesEmail(result.rows)
-        } catch (err) {
-            console.error('Error fetching sales data:', err.stack);
-        }
-    }, // onTick
-    null, // onComplete
-    true, // start
-    'America/Los_Angeles' // timeZone
-);
+
+// const cornJob = new CronJob(
+//     '* * * * * *', // cronTime
+//     async function () {
+//         try {
+//             const result = await client.query('SELECT * FROM Sales');
+//             console.log('Sales data:', result.rows);
+
+//             await sendSalesEmail(result.rows)
+//         } catch (err) {
+//             console.error('Error fetching sales data:', err.stack);
+//         }
+//     }, // onTick
+//     null, // onComplete
+//     true, // start
+//     'America/Los_Angeles' // timeZone
+// );
 
 app.get('/test-connection', async (req, res) => {
     try {
