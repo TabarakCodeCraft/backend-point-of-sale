@@ -4,25 +4,14 @@ const express = require('express');
 const dotenv = require('dotenv');
 const { faker } = require('@faker-js/faker');
 const { Client } = require("pg");
+const { CronJob } = require("cron");
+const nodemailer = require("nodemailer");
+
 dotenv.config();
 
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-// async function connection() {
-//     const pool = new Pool({ connectionString: "postgres://tabarakbackend_user:79Gaa6Wvr8twk5iVy5Gjcmqjmssw4wqx@dpg-cpiq466ct0pc73fv9ing-a/tabarakbackend" });
-//     try {
-//         const client = await pool.connect();
-//         console.log("Database connection successful!")
-//         return client
-//     } catch (error) {
-//         console.log("Database connection failed!")
-//     }
-// }
-
-// let db =  connection()
-// console.log(db)
 
 const client = new Client({
     connectionString: process.env.DATABASE_CONNECTION,
@@ -43,6 +32,49 @@ app.get('/', (req, res) => {
     res.send("Hello, world!");
 });
 
+
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+const sendSalesEmail = async (salesData) => {
+    const mailOptions = {
+        from: process.env.EMAIL_USER, // Add a "from" address
+        to: process.env.EMAIL_USER,
+        subject: 'Hourly Sales Data',
+        text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('Sales data email sent successfully');
+    } catch (error) {
+        console.error('Error sending sales data email:', error);
+    }
+};
+
+
+const cornJob = new CronJob(
+    '* * * * * *', // cronTime
+    async function () {
+        try {
+            const result = await client.query('SELECT * FROM Sales');
+            console.log('Sales data:', result.rows);
+
+            await sendSalesEmail(result.rows)
+        } catch (err) {
+            console.error('Error fetching sales data:', err.stack);
+        }
+    }, // onTick
+    null, // onComplete
+    true, // start
+    'America/Los_Angeles' // timeZone
+);
+
 app.get('/test-connection', async (req, res) => {
     try {
         res.send({ Msg: "succesfuly connections!" })
@@ -57,7 +89,7 @@ const createFakeData = async () => {
         await client.query('BEGIN');
 
         const usedEmails = new Set();
-        
+
         for (let i = 0; i < 200; i++) {
             let email;
             do {
