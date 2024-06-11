@@ -1,5 +1,5 @@
 
-// const { Client } = pg;
+
 const express = require('express');
 const dotenv = require('dotenv');
 const { faker } = require('@faker-js/faker');
@@ -8,7 +8,6 @@ const { CronJob } = require("cron");
 const nodemailer = require("nodemailer");
 
 dotenv.config();
-
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,51 +30,51 @@ app.get('/', (req, res) => {
     res.send("Hello, world!");
 });
 
+const transporter = nodemailer.createTransport({
+    service: "outlook",
+    host: "smtp-mail.outlook.com",
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    }
+});
 
-// const transporter = nodemailer.createTransport({
-//     service: 'Gmail',
-//     auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.EMAIL_PASS,
-//     }
-// });
+const sendSalesEmail = async (salesData) => {
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.EMAIL_USER,
+        subject: 'Hourly Sales Data',
+        text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
 
-// const sendSalesEmail = async (salesData) => {
-//     const mailOptions = {
-//         from: process.env.EMAIL_USER,
-//         to: process.env.EMAIL_USER,
-//         subject: 'Hourly Sales Data',
-//         text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
-
-//     };
-// console.log(process.env.EMAIL_USER );
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('Sales data email sent successfully');
+    } catch (error) {
+        console.error('Error sending sales data email:', error);
+    }
+};
 
 
-//     try {
-//         await transporter.sendMail(mailOptions);
-//         console.log('Sales data email sent successfully');
-//     } catch (error) {
-//         console.error('Error sending sales data email:', error);
-//     }
-// };
+const cornJob = new CronJob(
+    '* * * * *', // cronTime
 
+    async function () {
+        try {
+            const result = await client.query('SELECT * FROM Sales');
+            console.log('Sales data:', result.rows);
 
-// const cornJob = new CronJob(
-//     '* * * * * *', // cronTime
-//     async function () {
-//         try {
-//             const result = await client.query('SELECT * FROM Sales');
-//             console.log('Sales data:', result.rows);
-
-//             await sendSalesEmail(result.rows)
-//         } catch (err) {
-//             console.error('Error fetching sales data:', err.stack);
-//         }
-//     }, // onTick
-//     null, // onComplete
-//     true, // start
-//     'America/Los_Angeles' // timeZone
-// );
+            await sendSalesEmail(result.rows)
+        } catch (err) {
+            console.error('Error fetching sales data:', err.stack);
+        }
+    },
+    null, // onComplete
+    true, // start
+    'America/Los_Angeles' // timeZone
+);
 
 app.get('/test-connection', async (req, res) => {
     try {
