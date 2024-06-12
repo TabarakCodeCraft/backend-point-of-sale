@@ -41,14 +41,35 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+const convertToHTMLTable = (data) => {
+    let html = '<table border="1" cellpadding="5" cellspacing="0">';
+    html += '<tr>';
+    // Add table headers
+    Object.keys(data[0]).forEach(key => {
+        html += `<th>${key}</th>`;
+    });
+    html += '</tr>';
+    data.forEach(row => {
+        html += '<tr>';
+        Object.values(row).forEach(value => {
+            html += `<td>${value}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</table>';
+    return html;
+};
+
 const sendSalesEmail = async (salesData) => {
+    const salesTable = convertToHTMLTable(salesData);
+
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: process.env.EMAIL_USER,
         subject: 'Hourly Sales Data',
-        text: `Here is the sales data for the last hour:\n\n${JSON.stringify(salesData, null, 2)}`
-
+        html: `<p>Here is the sales data for the last hour:</p>${salesTable}`
     };
+
     try {
         await transporter.sendMail(mailOptions);
         console.log('Sales data email sent successfully');
@@ -58,32 +79,24 @@ const sendSalesEmail = async (salesData) => {
 };
 
 
-const cornJob = new CronJob(
-    '* * * * *', // cronTime
+// const cornJob = new CronJob(
+//     '* * * * *', // cronTime
 
-    async function () {
-        try {
-            const result = await client.query('SELECT * FROM Sales');
-            console.log('Sales data:', result.rows);
+//     async function () {
+//         try {
+//             const result = await client.query('SELECT * FROM Sales');
+//             console.log('Sales data:', result.rows);
 
-            await sendSalesEmail(result.rows)
-        } catch (err) {
-            console.error('Error fetching sales data:', err.stack);
-        }
-    },
-    null, // onComplete
-    true, // start
-    'America/Los_Angeles' // timeZone
-);
+//             await sendSalesEmail(result.rows)
+//         } catch (err) {
+//             console.error('Error fetching sales data:', err.stack);
+//         }
+//     },
+//     null, // onComplete
+//     true, // start
+//     'America/Los_Angeles' // timeZone
+// );
 
-app.get('/test-connection', async (req, res) => {
-    try {
-        res.send({ Msg: "succesfuly connections!" })
-    } catch (err) {
-        console.error('Error connecting to the database', err.stack);
-        res.status(500).send('Internal Server Error');
-    }
-});
 
 const createFakeData = async () => {
     try {
@@ -126,7 +139,6 @@ app.post('/generate-fake-data', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 
 // EndPoints for Products
@@ -289,13 +301,39 @@ app.put('/edit-customer/:CustomerId', async (req, res) => {
 //1-Get Sales
 app.get('/sales', async (req, res) => {
     try {
-        const result = await client.query('SELECT * FROM Sales');
+        const query = `
+             SELECT 
+                s.SaleID,
+                s.TotalAmount,
+                s.SaleDate,
+                json_build_object(
+                    'CustomerID', c.CustomerID,
+                    'FirstName', c.FirstName,
+                    'LastName', c.LastName,
+                    'Email', c.Email,
+                    'Phone', c.Phone
+                ) AS customer,
+                json_build_object(
+                    'ProductID', p.ProductID,
+                    'Name', p.Name,
+                    'Price', p.Price,
+                    'StockQuantity', p.StockQuantity
+                ) AS product
+            FROM 
+                Sales s
+            INNER JOIN 
+                Customers c ON s.CustomerID = c.CustomerID
+            INNER JOIN
+                Products p ON s.ProductID = p.ProductID
+        `;
+        const result = await client.query(query);
         res.json(result.rows);
     } catch (err) {
         console.error('Error executing query', err.stack);
         res.status(500).send('Internal Server Error');
     }
 });
+
 //2-Post (create sale)
 app.post('/create-sale', async (req, res) => {
     const { CustomerID, TotalAmount } = req.body;
