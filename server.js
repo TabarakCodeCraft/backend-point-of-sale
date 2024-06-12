@@ -42,6 +42,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const convertToHTMLTable = (data) => {
+    if (data.length === 0) {
+        return '<p>No sales data available for the last hour.</p>';
+    }
+
     let html = '<table border="1" cellpadding="5" cellspacing="0">';
     html += '<tr>';
     // Add table headers
@@ -79,7 +83,7 @@ const sendSalesEmail = async (salesData) => {
 };
 
 const cronJob = new CronJob(
-    '* * * * *',
+    '* * * * *', // Run at the top of every hour
     async function () {
         try {
             const query = `
@@ -106,8 +110,6 @@ const cronJob = new CronJob(
                     Customers c ON s.CustomerID = c.CustomerID
                 INNER JOIN
                     Products p ON s.ProductID = p.ProductID
-                WHERE
-                    s.SaleDate >= NOW() - INTERVAL '1 hour'
             `;
             const result = await client.query(query);
             console.log('Sales data:', result.rows);
@@ -121,7 +123,6 @@ const cronJob = new CronJob(
     true, // start
     'America/Los_Angeles' // timeZone
 );
-
 
 
 const createFakeData = async () => {
