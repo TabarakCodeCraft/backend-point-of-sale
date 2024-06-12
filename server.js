@@ -78,24 +78,50 @@ const sendSalesEmail = async (salesData) => {
     }
 };
 
+const cronJob = new CronJob(
+    '* * * * *',
+    async function () {
+        try {
+            const query = `
+                SELECT 
+                    s.SaleID,
+                    s.TotalAmount,
+                    s.SaleDate,
+                    json_build_object(
+                        'CustomerID', c.CustomerID,
+                        'FirstName', c.FirstName,
+                        'LastName', c.LastName,
+                        'Email', c.Email,
+                        'Phone', c.Phone
+                    ) AS customer,
+                    json_build_object(
+                        'ProductID', p.ProductID,
+                        'Name', p.Name,
+                        'Price', p.Price,
+                        'StockQuantity', p.StockQuantity
+                    ) AS product
+                FROM 
+                    Sales s
+                INNER JOIN 
+                    Customers c ON s.CustomerID = c.CustomerID
+                INNER JOIN
+                    Products p ON s.ProductID = p.ProductID
+                WHERE
+                    s.SaleDate >= NOW() - INTERVAL '1 hour'
+            `;
+            const result = await client.query(query);
+            console.log('Sales data:', result.rows);
 
-// const cornJob = new CronJob(
-//     '* * * * *', // cronTime
+            await sendSalesEmail(result.rows);
+        } catch (err) {
+            console.error('Error fetching sales data:', err.stack);
+        }
+    },
+    null, // onComplete
+    true, // start
+    'America/Los_Angeles' // timeZone
+);
 
-//     async function () {
-//         try {
-//             const result = await client.query('SELECT * FROM Sales');
-//             console.log('Sales data:', result.rows);
-
-//             await sendSalesEmail(result.rows)
-//         } catch (err) {
-//             console.error('Error fetching sales data:', err.stack);
-//         }
-//     },
-//     null, // onComplete
-//     true, // start
-//     'America/Los_Angeles' // timeZone
-// );
 
 
 const createFakeData = async () => {
