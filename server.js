@@ -1,5 +1,4 @@
 
-
 const express = require('express');
 const dotenv = require('dotenv');
 const { faker } = require('@faker-js/faker');
@@ -87,29 +86,14 @@ const cronJob = new CronJob(
     async function () {
         try {
             const query = `
-                SELECT 
-                    s.SaleID,
-                    s.TotalAmount,
-                    s.SaleDate,
-                    json_build_object(
-                        'CustomerID', c.CustomerID,
-                        'FirstName', c.FirstName,
-                        'LastName', c.LastName,
-                        'Email', c.Email,
-                        'Phone', c.Phone
-                    ) AS customer,
-                    json_build_object(
-                        'ProductID', p.ProductID,
-                        'Name', p.Name,
-                        'Price', p.Price,
-                        'StockQuantity', p.StockQuantity
-                    ) AS product
+           SELECT 
+                    SaleID,
+                    TotalAmount,
+                    SaleDate,
+                    customer,
+                    product
                 FROM 
-                    Sales s
-                INNER JOIN 
-                    Customers c ON s.CustomerID = c.CustomerID
-                INNER JOIN
-                    Products p ON s.ProductID = p.ProductID
+                    SalesView
             `;
             const result = await client.query(query);
             console.log('Sales data:', result.rows);
@@ -329,29 +313,14 @@ app.put('/edit-customer/:CustomerId', async (req, res) => {
 app.get('/sales', async (req, res) => {
     try {
         const query = `
-             SELECT 
-                s.SaleID,
-                s.TotalAmount,
-                s.SaleDate,
-                json_build_object(
-                    'CustomerID', c.CustomerID,
-                    'FirstName', c.FirstName,
-                    'LastName', c.LastName,
-                    'Email', c.Email,
-                    'Phone', c.Phone
-                ) AS customer,
-                json_build_object(
-                    'ProductID', p.ProductID,
-                    'Name', p.Name,
-                    'Price', p.Price,
-                    'StockQuantity', p.StockQuantity
-                ) AS product
-            FROM 
-                Sales s
-            INNER JOIN 
-                Customers c ON s.CustomerID = c.CustomerID
-            INNER JOIN
-                Products p ON s.ProductID = p.ProductID
+           SELECT 
+                    SaleID,
+                    TotalAmount,
+                    SaleDate,
+                    customer,
+                    product
+                FROM 
+                    SalesView
         `;
         const result = await client.query(query);
         res.json(result.rows);
